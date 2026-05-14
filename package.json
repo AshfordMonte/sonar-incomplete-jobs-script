@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node src/index.js",
     "jobs": "node src/index.js",
+    "slack": "node src/index.js --post-slack",
     "inspect-jobs": "node scripts/inspectJobs.js",
     "introspect": "node scripts/introspect.js",
     "check": "node src/index.js --help"
