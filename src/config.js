@@ -17,6 +17,8 @@ export function loadConfig({ cwd = process.cwd(), envPath = DEFAULT_ENV_PATH } =
   };
 }
 
+// Small .env loader to keep this CLI dependency-free. Values already present in
+// the shell win over values in .env, which makes scheduled runs easier to tune.
 function loadDotEnv(filePath) {
   if (!fs.existsSync(filePath)) {
     return;

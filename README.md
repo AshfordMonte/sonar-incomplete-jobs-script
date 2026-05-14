@@ -1,48 +1,90 @@
 # Sonar Incomplete Jobs CLI
 
-CLI framework for pulling overdue incomplete Sonar jobs for HC Wireless technicians, formatting them as a list/table, and eventually posting the output to Slack.
+Daily CLI report for overdue incomplete Sonar jobs assigned to HC Wireless technicians.
+
+The normal daily workflow is:
+
+```powershell
+npm run slack
+```
+
+That command pulls overdue incomplete jobs from Sonar, formats them as a Slack table, and posts the report to the configured Slack webhook.
+
+## What It Reports
+
+By default, a job is included when:
+
+- Sonar says `complete` is `false`
+- `scheduled_datetime` is before today, which means yesterday and older
+- at least one assigned Sonar user matches `HC_TECH_USER_IDS`
+
+The current HC Wireless tech IDs are:
+
+```env
+HC_TECH_USER_IDS=344,341,340
+```
+
+The Slack/table output uses these columns:
+
+- `Job | ID`
+- `Job | Jobbable Entity`
+- `Job | Scheduled Date time`
+- `Job Type | Name`
+- `Assigned Users`
 
 ## Setup
 
 1. Install Node.js 18 or newer.
-2. Fill in `.env` with your Sonar GraphQL endpoint, API token, and HC Wireless technician user IDs.
-3. Run:
+2. Fill in `.env`.
+3. Run a local report before posting to Slack.
 
-```powershell
-npm run jobs -- --help
+Required `.env` values:
+
+```env
+SONAR_GRAPHQL_URL=https://your-sonar-host.example.com/graphql
+SONAR_API_TOKEN=replace_me
+SLACK_WEBHOOK_URL=https://hooks.slack.com/services/replace/me
+HC_TECH_USER_IDS=344,341,340
+DISPLAY_TIME_ZONE=Etc/GMT+6
+```
+
+Optional values:
+
+```env
+SONAR_PAGE_SIZE=50
+SLACK_TITLE_SUFFIX=- <@USERID1> <@USERID2> <@USERID3>
+```
+
+`SLACK_TITLE_SUFFIX` is useful if you want the title to look like:
+
+```text
+Incomplete Jobs - @Nathan Butterworth @Leo Castillo @Chris Rush
 ```
 
 ## Commands
 
-Print incomplete jobs as a console table:
+Post the daily Slack report:
+
+```powershell
+npm run slack
+```
+
+Print the same report in the terminal:
 
 ```powershell
 npm run jobs
 ```
 
-By default, this returns jobs where:
+Preview the Slack payload without posting:
 
-- `complete` is `false`
-- `scheduled_datetime` is before today, which means yesterday and older
-- at least one assigned Sonar user matches `HC_TECH_USER_IDS`, if that env value is set
-
-For HC Wireless, use:
-
-```env
-HC_TECH_USER_IDS=344,341,340
-DISPLAY_TIME_ZONE=Etc/GMT+6
+```powershell
+npm run jobs -- --limit 4 --slack-preview
 ```
 
-Limit returned jobs. The CLI may scan additional Sonar pages to fill this count after the HC technician filter is applied:
+Limit returned jobs:
 
 ```powershell
 npm run jobs -- --limit 25
-```
-
-Request a specific Sonar page:
-
-```powershell
-npm run jobs -- --page 2 --limit 25
 ```
 
 Use a custom cutoff date. This includes jobs scheduled before the date, so `2026-05-14` means May 13 and older:
@@ -51,7 +93,7 @@ Use a custom cutoff date. This includes jobs scheduled before the date, so `2026
 npm run jobs -- --cutoff-date 2026-05-14
 ```
 
-Override HC Wireless technician user IDs:
+Temporarily override the HC Wireless tech IDs:
 
 ```powershell
 npm run jobs -- --tech-user-ids 123,456,789
@@ -60,7 +102,7 @@ npm run jobs -- --tech-user-ids 123,456,789
 Inspect overdue incomplete jobs for all assigned techs:
 
 ```powershell
-npm run jobs -- --all-techs --limit 10 --output json
+npm run jobs -- --all-techs --limit 10
 ```
 
 Print raw normalized JSON:
@@ -69,43 +111,27 @@ Print raw normalized JSON:
 npm run jobs -- --output json
 ```
 
-Inspect the available Sonar GraphQL fields:
+Inspect specific Sonar jobs:
+
+```powershell
+npm run inspect-jobs -- 59855 59853 59874 57193
+```
+
+Inspect available Sonar GraphQL fields:
 
 ```powershell
 npm run introspect
 ```
 
-Post to Slack once `SLACK_WEBHOOK_URL` is set:
+## Slack Output
 
-```powershell
-npm run jobs -- --post-slack
-```
+Slack output uses a native Slack table block. The script sends one title section and one table block. Slack allows up to 100 rows in a table block, so the message includes the header row plus the first 99 jobs.
 
-Optionally add a suffix after the Slack title, for user mentions or a team note:
+The fallback `text` field is included for Slack notifications and accessibility. The visible channel message should render from the `blocks` array.
 
-```env
-SLACK_TITLE_SUFFIX=- <@USERID1> <@USERID2> <@USERID3>
-```
+## Sonar Query
 
-Preview the Slack webhook payload without posting:
-
-```powershell
-npm run jobs -- --limit 4 --slack-preview
-```
-
-Slack output uses a Slack table block with these columns:
-
-- `Job ID`
-- `Job | Jobbable Entity`
-- `Scheduled`
-- `Job Type`
-- `Assigned Users`
-
-Slack posts the first 99 jobs plus the header row in the table block. Run the CLI locally for the full list if the report is longer.
-
-## GraphQL Query
-
-The current query in `src/sonar/jobsQuery.js` uses the confirmed Sonar shape:
+The main query lives in `src/sonar/jobsQuery.js`. Sonar handles the broad filter:
 
 ```graphql
 jobs(
@@ -135,15 +161,6 @@ jobs(
     job_type {
       name
     }
-    serviceable_address_account_assignment_future {
-      address {
-        line1
-        line2
-        city
-        subdivision
-        zip
-      }
-    }
     users {
       entities {
         id
@@ -160,21 +177,4 @@ jobs(
 }
 ```
 
-The HC Wireless technician filter currently runs locally against `jobs.entities.users.entities.id`. If `HC_TECH_USER_IDS` is empty, the CLI includes all overdue incomplete jobs.
-
-The CLI expects normalized jobs with these display fields:
-
-- `id`
-- `jobNumber`
-- `complete`
-- `status`
-- `customerName`
-- `address`
-- `assignedTechs`
-- `assignedTechUserIds`
-- `scheduledAt`
-- `scheduledAtDisplay`
-- `jobbableEntity`
-- `jobTypeName`
-- `completedAt`
-- `notes`
+The HC Wireless technician filter runs locally against `jobs.entities.users.entities.id`. The CLI scans additional Sonar pages until it fills the requested `--limit` or runs out of results.

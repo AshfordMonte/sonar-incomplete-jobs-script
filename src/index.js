@@ -17,9 +17,13 @@ async function main() {
   }
 
   const config = loadConfig();
+
+  // The daily report is yesterday and older by default. Passing todays
+  // local date as the cutoff makes Sonar return jobs scheduled before today.
   const cutoffDate = options.cutoffDate ?? getDefaultCutoffDate();
   const cutoffDatetime = localDateToCutoffDatetime(cutoffDate);
   const techUserIds = options.allTechs ? [] : options.techUserIds ?? config.hcTechUserIds;
+
   const result = await fetchIncompleteJobs({
     config,
     cutoffDatetime,
@@ -27,6 +31,9 @@ async function main() {
     page: options.page,
     techUserIds
   });
+
+  // Sonar returns UTC timestamps. The display value is kept separate so JSON
+  // output can include both the original timestamp and the report-friendly one.
   result.jobs = result.jobs.map((job) => ({
     ...job,
     scheduledAtDisplay: formatScheduledDateTime(job.scheduledAt, config.displayTimeZone)

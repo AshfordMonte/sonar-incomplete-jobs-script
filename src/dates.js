@@ -3,6 +3,7 @@ export function getDefaultCutoffDate() {
   return formatLocalDate(now);
 }
 
+// Sonar's datetime search expects an ISO instant. Jobs scheduled before midnight of the current day
 export function localDateToCutoffDatetime(dateValue) {
   const [year, month, day] = dateValue.split("-").map((part) => Number.parseInt(part, 10));
   const localStartOfDay = new Date(year, month - 1, day, 0, 0, 0, 0);

@@ -1,7 +1,7 @@
 {
   "name": "sonar-incomplete-jobs",
   "version": "0.1.0",
-  "description": "CLI framework for finding incomplete Sonar jobs that need technician notes.",
+  "description": "CLI report for overdue incomplete HC Wireless Sonar jobs.",
   "type": "module",
   "scripts": {
     "start": "node src/index.js",

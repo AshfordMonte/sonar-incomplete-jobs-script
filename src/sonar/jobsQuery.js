@@ -64,6 +64,8 @@ query IncompleteJobs($cutoffDatetime: Datetime!, $page: Int!, $recordsPerPage: I
 }
 `;
 
+// Keep GraphQL variables in one place so the query stays easy to compare
+// against Sonar's schema when fields or filters change.
 export function buildIncompleteJobsVariables({ cutoffDatetime, page, recordsPerPage }) {
   return {
     cutoffDatetime,

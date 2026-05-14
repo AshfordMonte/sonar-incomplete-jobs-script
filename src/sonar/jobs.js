@@ -8,6 +8,9 @@ export async function fetchIncompleteJobs({ config, cutoffDatetime, limit, page 
   let currentPage = page;
   let pageInfo = null;
 
+  // Sonar filters the broad report server-side. The tech filter is local
+  // because these jobs expose assigned users in the returned relation, not as a
+  // simple jobs() argument. Scan pages until we have enough matching jobs.
   while (jobs.length < maxJobs) {
     const data = await requestSonarGraphql({
       url: config.sonarGraphqlUrl,
@@ -55,6 +58,8 @@ export async function fetchIncompleteJobs({ config, cutoffDatetime, limit, page 
   };
 }
 
+// Normalize Sonar's snake_case GraphQL response into the shape used by every
+// formatter. This keeps Slack/table output independent from the raw API shape.
 export function normalizeJob(job) {
   return {
     id: job.id ?? "",
@@ -106,6 +111,8 @@ function formatAssignedTechs(assignedTechnicians) {
     .join(" | ");
 }
 
+// Prefer Sonar's completion address when present, then fall back to the
+// scheduled assignment address.
 function firstNonBlank(...values) {
   return values.find((value) => String(value ?? "").trim()) ?? "";
 }

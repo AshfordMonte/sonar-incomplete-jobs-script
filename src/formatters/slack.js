@@ -14,6 +14,8 @@ export function formatJobsForSlack(jobs, { titleSuffix = "" } = {}) {
   }
 
   const visibleJobs = jobs.slice(0, 99);
+
+  // Incoming webhooks render Slack's native table block cleanly here.
   const blocks = [
     sectionBlock(`*${title}*`),
     tableBlock(visibleJobs)
@@ -93,6 +95,7 @@ function tableBlock(jobs) {
   };
 }
 
+// Slack table cells must be plain text or rich text objects.
 function tableRow(values) {
   return values.map((value) => ({
     type: "raw_text",
