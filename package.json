@@ -1,0 +1,17 @@
+{
+  "name": "sonar-incomplete-jobs",
+  "version": "0.1.0",
+  "description": "CLI framework for finding incomplete Sonar jobs that need technician notes.",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "jobs": "node src/index.js",
+    "inspect-jobs": "node scripts/inspectJobs.js",
+    "introspect": "node scripts/introspect.js",
+    "check": "node src/index.js --help"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "UNLICENSED"
+}
